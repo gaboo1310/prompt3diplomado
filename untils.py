@@ -4,10 +4,104 @@ import array
 from openai import OpenAI
 from redis import Redis
 from redis.commands.search.query import Query
+import base64
+
+import base64
+from PIL import Image
+import io
+import os
+import csv
+import glob
+
+import base64
+from openai import OpenAI
+
+from pathlib import Path
+
+# Definir la carpeta donde se guardarán las imágenes temporales
+TEMP_IMAGE_PATH = Path("uploaded_images")
+TEMP_IMAGE_PATH.mkdir(exist_ok=True)  # Asegura que la carpeta existe
+
+def convert_image_to_base64(image_file):
+    """ Convierte una imagen subida a base64. """
+    temp_file_path = TEMP_IMAGE_PATH / "file.jpg"  # Guardar con un nombre fijo
+    with open(temp_file_path, "wb") as f:
+        f.write(image_file)
+
+    with open(temp_file_path, "rb") as f:
+       
+        return base64.b64encode(f.read()).decode("utf-8")
+    
+    
+def optimize_image(image_file):
+    temp_file_path = TEMP_IMAGE_PATH / "file.jpg"  # Guardar con un nombre fijo
+    with open(temp_file_path, "wb") as f:
+        f.write(image_file)
+
+    with open(temp_file_path, "rb") as f:
+    
+        try:
+            with Image.open(temp_file_path) as img:
+                # Convertir a RGB si es necesario (manteniendo el color)
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                
+                new_img = Image.new('RGB', (64, 64), 'white')
+                img.thumbnail((64, 64), Image.Resampling.LANCZOS)
+                
+                position = ((64 - img.size[0]) // 2, (64 - img.size[1]) // 2)
+                new_img.paste(img, position)
+                
+                buffer = io.BytesIO()
+                new_img.save(buffer, format='JPEG', quality=70, optimize=True)
+                buffer.seek(0)
+                
+                base64_image = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                
+                return base64_image
+        except Exception as e:
+            return f"Error procesando {temp_file_path}: {str(e)}"
+    
+    
+
+def analyze_image_with_chatgpt(image_bytes):  
+    #base64_image = convert_image_to_base64(image_bytes)
+    base64_image= optimize_image(image_bytes)
+    
+    with open("nombre_archivo", "w", encoding="utf-8") as archivo:
+        archivo.write(base64_image)
+        
+    client = OpenAI()
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "desde un punto de vista academico, que observar en esta foto de un lunar (no incluyas la palabra academico en tu respuesta, en español)"},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
+                ],
+            }
+        ],
+    )
+    
+    
+    respuesta = find_vector_in_redis(base64_image)
+    return respuesta
+    # return response.choices[0].message.content
+
+
+
+
+
+
+
 
 def find_vector_in_redis(query):
     try:
-        # Cargar las credenciales desde las variables de entorno
+
+
         OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
         redis_username = os.getenv('redis_username')
         redis_password = os.getenv('redis_password')
@@ -17,11 +111,10 @@ def find_vector_in_redis(query):
         redis_index = os.getenv("redis_index")
         VECTOR_FIELD_NAME = 'content_vector'
 
-        # Crear la URL de conexión a Redis
         url = f"redis://{redis_username}:{redis_password}@{redis_host}:{redis_port}/{redis_db}"
         r = Redis.from_url(url=url)
 
-        # Verificar conexión a Redis
+
         try:
             if r.ping():
                 print("Conexión exitosa con Redis")

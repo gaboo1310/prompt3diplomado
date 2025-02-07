@@ -39,3 +39,7 @@ openai
 langchain
 requests
 redis
+python-multipart
+pandas
+llmx
+langchain-community
