@@ -176,7 +176,7 @@ def find_vector_in_redis(query):
 
         print("444444444444444444444444444444")
         contents = [str(doc.content) for doc in results.docs]
-        print(contents)
+
         return contents
 
     except Exception as e:

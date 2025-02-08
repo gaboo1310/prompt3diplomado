@@ -81,7 +81,7 @@ import os
 from openai import OpenAI
 from untils import find_vector_in_redis 
 from pathlib import Path
-from dotenv import load_dotenv
+
 load_dotenv(override=True)
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')

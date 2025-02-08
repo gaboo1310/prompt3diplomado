@@ -181,28 +181,13 @@ def embeddingTxt(input_dir):
             text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
             docs = text_splitter.split_documents(documents)
 
-            # url = f"redis://{redis_username}:{redis_password}@{redis_host}:{redis_port}/{redis_db}"
-            # r = Redis.from_url(url=url)
-
-
-            # try:
-            #     if r.ping():
-            #         print("Conexión exitosa con Redis")
-            #     else:
-            #         print("SIN CONEXIÓN con Redis")
-            #         return []
-            # except Exception as e:
-            #     print(f" Error conectando a Redis: {e}")
-            #     return []
-            
-
-            # Cargar los documentos divididos a Redis con embeddings
+           
             vectorstore = Redis(
-               
                 embedding=embeddings,
                 redis_url=f"redis://{redis_username}:{redis_password}@{redis_host}:{redis_port}/{redis_db}",
                 index_name=redis_index
             )
+            vectorstore.add_documents(docs)
             
 
             print(f"Documentos del archivo '{filename}' cargados exitosamente en Redis.")
