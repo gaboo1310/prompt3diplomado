@@ -49,7 +49,7 @@ with st.sidebar:
         except requests.exceptions.RequestException as e:
             st.error(f"Error al subir la imagen: {e}")
     else:
-        st.image("", caption="Imagen", use_container_width=True)
+        st.image("https://via.placeholder.com/400", caption="Imagen relacionada", use_container_width=True)
 
 
     image_path = "imagen_recuperada.jpg"
@@ -100,6 +100,5 @@ def chat_ui():
 
 
 ##--------------------------------------------------------
-
 # Llamar al chat UI
 chat_ui()
