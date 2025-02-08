@@ -140,8 +140,7 @@ async def generate_message_redis(request: Request):
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "Eres un asistente, responde al inicio con un hola."},
-                {"role": "user", "content": f"""Entrega la respuesta de forma ordenada,
-                 es una lista, cada elemento en un salto de línea y en español: {redis_results}"""}
+                {"role": "user", "content": f"""pasa los resultados en el formato adecuado: """}
             ]
         )
         message = completion.choices[0].message.content.strip()

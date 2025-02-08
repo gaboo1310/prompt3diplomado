@@ -22,15 +22,15 @@ from pathlib import Path
 TEMP_IMAGE_PATH = Path("uploaded_images")
 TEMP_IMAGE_PATH.mkdir(exist_ok=True)  # Asegura que la carpeta existe
 
-def convert_image_to_base64(image_file):
-    """ Convierte una imagen subida a base64. """
-    temp_file_path = TEMP_IMAGE_PATH / "file.jpg"  # Guardar con un nombre fijo
-    with open(temp_file_path, "wb") as f:
-        f.write(image_file)
+# def convert_image_to_base64(image_file):
+#     """ Convierte una imagen subida a base64. """
+#     temp_file_path = TEMP_IMAGE_PATH / "file.jpg"  # Guardar con un nombre fijo
+#     with open(temp_file_path, "wb") as f:
+#         f.write(image_file)
 
-    with open(temp_file_path, "rb") as f:
+#     with open(temp_file_path, "rb") as f:
        
-        return base64.b64encode(f.read()).decode("utf-8")
+#         return base64.b64encode(f.read()).decode("utf-8")
     
     
 def optimize_image(image_file):
@@ -176,7 +176,6 @@ def find_vector_in_redis(query):
 
         print("444444444444444444444444444444")
         contents = [str(doc.content) for doc in results.docs]
-
         return contents
 
     except Exception as e:
