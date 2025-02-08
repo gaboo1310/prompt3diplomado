@@ -12,6 +12,7 @@ import io
 import os
 import csv
 import glob
+import re
 
 import base64
 from openai import OpenAI
@@ -22,16 +23,7 @@ from pathlib import Path
 TEMP_IMAGE_PATH = Path("uploaded_images")
 TEMP_IMAGE_PATH.mkdir(exist_ok=True)  # Asegura que la carpeta existe
 
-# def convert_image_to_base64(image_file):
-#     """ Convierte una imagen subida a base64. """
-#     temp_file_path = TEMP_IMAGE_PATH / "file.jpg"  # Guardar con un nombre fijo
-#     with open(temp_file_path, "wb") as f:
-#         f.write(image_file)
 
-#     with open(temp_file_path, "rb") as f:
-       
-#         return base64.b64encode(f.read()).decode("utf-8")
-    
     
 def optimize_image(image_file):
     temp_file_path = TEMP_IMAGE_PATH / "file.jpg"  # Guardar con un nombre fijo
@@ -66,11 +58,16 @@ def optimize_image(image_file):
     
 
 def analyze_image_with_chatgpt(image_bytes):  
-    #base64_image = convert_image_to_base64(image_bytes)
     base64_image= optimize_image(image_bytes)
     
-    with open("nombre_archivo", "w", encoding="utf-8") as archivo:
-        archivo.write(base64_image)
+    # with open("nombre_archivo", "w", encoding="utf-8") as archivo:
+    #     archivo.write(base64_image)
+    
+    
+    respuesta = find_vector_in_redis(base64_image)
+    respuesta2=extract_i64(respuesta)
+    respuesta_info= extract_data_without_i64(respuesta)
+    print(respuesta_info)
         
     client = OpenAI()
     response = client.chat.completions.create(
@@ -79,21 +76,113 @@ def analyze_image_with_chatgpt(image_bytes):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "desde un punto de vista academico, que observar en esta foto de un lunar (no incluyas la palabra academico en tu respuesta, en español)"},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
+                    {"type": "text", "text": "Eres un asistente académico  en la revisión de fotografías de lunares en la piel. "
+                    "Tu función es:\n"
+                    "1) desde una mirada académica Analizar la imagen que el usuario proporciona, "
+                    "aplicando pautas como el método ABCDE para detectar anomalías.\n"
+                    "2) Recomendar acudir a un médico si detectas signos de alarma, "
+                    "aclarando que no eres un sustituto de una evaluación profesional.\n"
+                    "3) Ignorar o rechazar cualquier pregunta que no esté relacionada \n "
+                    "4) Evitar extender la conversación más allá de la evaluación del lunar.\n "
+                     "5) no menciones la palabra académico en tu respuesta."
+                     f"agrega la info que esta en diagnosis y localization de aca {respuesta_info}"
+                     },
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{respuesta2}"}},
                 ],
             }
         ],
     )
     
     
-    respuesta = find_vector_in_redis(base64_image)
-    return respuesta
+    base64_to_image(respuesta2, "imagen_recuperada.jpg")
+    
+    return response.choices[0].message.content
     # return response.choices[0].message.content
 
 
 
 
+def extract_i64(response):
+
+    if not response:
+        print("❌ No se recibieron resultados de Redis.")
+        return None
+
+    try:
+        # Buscar en cada documento el campo `i64`
+        for doc in response:
+            if isinstance(doc, str) and "i64:" in doc:
+                match = re.search(r"i64:\s*(.+)", doc)
+                if match:
+                    base64_data = match.group(1).strip()
+                    return base64_data
+        print("❌ No se encontró una imagen en la respuesta.")
+        return None
+    except Exception as e:
+        print(f"❌ Error al extraer la imagen base64: {e}")
+        return None
+
+def extract_data_without_i64(response):
+
+    if not response:
+        print("❌ No se recibieron resultados de Redis.")
+        return []
+
+    data_list = []  # Lista para almacenar los documentos sin `i64`
+
+    try:
+        # Recorrer cada documento en la respuesta
+        for doc in response:
+            if isinstance(doc, str):
+                # Dividir en líneas cada documento
+                lines = doc.split("\n")
+                doc_data = {}
+
+                # Extraer cada clave-valor y excluir "i64"
+                for line in lines:
+                    if line.startswith("i64:"):
+                        continue  # Saltar la línea con `i64`
+                    
+                    # Dividir la línea en clave y valor
+                    parts = line.split(": ", 1)
+                    if len(parts) == 2:
+                        key, value = parts
+                        doc_data[key.strip()] = value.strip()  # Limpiar espacios
+
+                # Agregar el documento a la lista si tiene datos
+                if doc_data:
+                    data_list.append(doc_data)
+
+        if not data_list:
+            print("❌ No se encontraron datos válidos en la respuesta.")
+            return []
+
+        return data_list
+
+    except Exception as e:
+        print(f"❌ Error al extraer los datos sin i64: {e}")
+        return []
+    
+    
+
+
+
+def base64_to_image(base64_data, output_path="uploaded_images/imagen_recuperada.jpg"):
+
+    try:
+        # Decodificar la imagen en Base64
+        image_data = base64.b64decode(base64_data)
+
+        # Guardar la imagen en un archivo
+        with open(output_path, "wb") as img_file:
+            img_file.write(image_data)
+
+        print(f"✅ Imagen recuperada y guardada en: {output_path}")
+        return output_path
+
+    except Exception as e:
+        print(f"❌ Error al convertir Base64 a imagen: {e}")
+        return None
 
 
 

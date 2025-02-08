@@ -261,8 +261,15 @@ with st.sidebar:
     else:
         st.image("https://via.placeholder.com/400", caption="Imagen relacionada", use_container_width=True)
 
-# Chat en la parte central
-st.subheader("ChatBot")
+
+    image_path = "imagen_recuperada.jpg"
+    if os.path.exists(image_path):
+        st.image(image_path, caption="Imagen recuperada", use_container_width=True)
+    else:
+        st.warning("")
+            
+    # Chat en la parte central
+    # st.subheader("ChatBot")
 
 # Funciones para renderizar mensajes
 def user_message(message):
@@ -305,7 +312,6 @@ def chat_ui():
     # Input del usuario
     user_input = st.chat_input("Tu mensaje:")
     if user_input:
-        # Guardar mensaje del usuario
         st.session_state.chat_history.append((user_input, False))
         user_message(user_input)
 
